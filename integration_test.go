@@ -4,14 +4,16 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"github.com/yaqyn/threadline-social-api/internal/auth"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/yaqyn/chirpy/internal/database"
+	"github.com/yaqyn/threadline-social-api/internal/database"
 )
 
 // Requires a migrated disposable database; never resets shared data.
@@ -76,6 +78,32 @@ func TestAPIIntegration(t *testing.T) {
 		t.Fatal("chirp author or cleaning wrong")
 	}
 	path := "/api/chirps/" + chirp["id"].(string)
+	otherToken, err := auth.MakeJWT(uuid.New(), cfg.jwtSecret, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request("DELETE", path, nil, "Bearer "+otherToken, 403)
+	request("GET", path, nil, "", 200)
+	second := request("POST", "/api/chirps", map[string]string{"body": "second post"}, access, 201)
+	for _, test := range []struct {
+		query  string
+		wantID string
+	}{
+		{"?author_id=" + id + "&sort=asc&limit=1", chirp["id"].(string)},
+		{"?author_id=" + id + "&sort=desc&limit=1", second["id"].(string)},
+		{"?author_id=" + id + "&sort=asc&limit=1&offset=1", second["id"].(string)},
+	} {
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, httptest.NewRequest("GET", "/api/chirps"+test.query, nil))
+		var items []Chirp
+		if err := json.Unmarshal(w.Body.Bytes(), &items); err != nil {
+			t.Fatal(err)
+		}
+		if w.Code != 200 || len(items) != 1 || items[0].ID.String() != test.wantID {
+			t.Fatalf("query %s: %d %s", test.query, w.Code, w.Body.String())
+		}
+	}
+
 	request("POST", "/api/chirps", map[string]string{"body": strings.Repeat("界", 141)}, access, 400)
 	request("POST", "/api/chirps", map[string]string{"body": " "}, access, 400)
 	request("POST", "/api/polka/webhooks", map[string]any{"event": "user.upgraded", "data": map[string]string{"user_id": id}}, "ApiKey wrong", 401)
@@ -85,6 +113,14 @@ func TestAPIIntegration(t *testing.T) {
 		t.Fatal("upgrade not persisted")
 	}
 	request("POST", "/api/refresh", nil, refresh, 200)
+	if _, err := db.Exec("UPDATE refresh_tokens SET expires_at=NOW()-interval '1 second' WHERE token=$1", login["refresh_token"]); err != nil {
+		t.Fatal(err)
+	}
+	request("POST", "/api/refresh", nil, refresh, 401)
+	if _, err := db.Exec("UPDATE refresh_tokens SET expires_at=NOW()+interval '1 day' WHERE token=$1", login["refresh_token"]); err != nil {
+		t.Fatal(err)
+	}
+
 	request("POST", "/api/revoke", nil, refresh, 204)
 	request("POST", "/api/refresh", nil, refresh, 401)
 	request("DELETE", path, "", access, 204)
