@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-threadline-local}
+      POSTGRES_DB: threadline
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d threadline"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  api:
+    build: .
+    environment:
+      DB_URL: postgres://postgres:${POSTGRES_PASSWORD:-threadline-local}@db:5432/threadline?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      POLKA_KEY: ${POLKA_KEY:?Set POLKA_KEY in .env}
+      PLATFORM: ${PLATFORM:-production}
+      ADDR: :8080
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/api/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+volumes:
+  postgres_data:
