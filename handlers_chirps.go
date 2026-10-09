@@ -2,16 +2,13 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/yaqyn/chirpy/internal/auth"
 	"github.com/yaqyn/chirpy/internal/database"
-	"io"
 	"log"
 	"net/http"
-	"sort"
 	"strings"
 	"unicode/utf8"
 )
@@ -30,13 +27,11 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	var params struct {
 		Body string `json:"body"`
 	}
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&params); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid JSON")
+	if !decodeJSON(w, r, &params) {
 		return
 	}
-	if err := decoder.Decode(new(any)); err != io.EOF {
-		respondWithError(w, http.StatusBadRequest, "Invalid JSON")
+	if strings.TrimSpace(params.Body) == "" {
+		respondWithError(w, http.StatusBadRequest, "Chirp body is required")
 		return
 	}
 	if utf8.RuneCountInString(params.Body) > 140 {
@@ -63,18 +58,12 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 }
 
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
-	var rows []database.Chirp
-	var err error
-	if author := r.URL.Query().Get("author_id"); author != "" {
-		authorID, parseErr := uuid.Parse(author)
-		if parseErr != nil {
-			respondWithError(w, http.StatusBadRequest, "Invalid author ID")
-			return
-		}
-		rows, err = cfg.dbQueries.GetChirpsByAuthor(r.Context(), authorID)
-	} else {
-		rows, err = cfg.dbQueries.GetChirps(r.Context())
+	params, err := parseChirpQuery(r)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
 	}
+	rows, err := cfg.dbQueries.GetChirpsPage(r.Context(), params)
 	if err != nil {
 		log.Printf("Failed to get chirps: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "Failed to get chirps")
@@ -87,13 +76,6 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 			Body: row.Body, UserID: row.UserID,
 		})
 	}
-	descending := r.URL.Query().Get("sort") == "desc"
-	sort.Slice(chirps, func(i, j int) bool {
-		if descending {
-			return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
-		}
-		return chirps[i].CreatedAt.Before(chirps[j].CreatedAt)
-	})
 	respondWithJSON(w, http.StatusOK, chirps)
 }
 

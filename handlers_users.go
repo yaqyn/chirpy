@@ -2,12 +2,10 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"github.com/lib/pq"
 	"github.com/yaqyn/chirpy/internal/auth"
 	"github.com/yaqyn/chirpy/internal/database"
-	"io"
 	"log"
 	"net/http"
 	"time"
@@ -18,17 +16,11 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&params); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid JSON")
+	if !decodeJSON(w, r, &params) {
 		return
 	}
-	if err := decoder.Decode(new(any)); err != io.EOF {
-		respondWithError(w, http.StatusBadRequest, "Invalid JSON")
-		return
-	}
-	if params.Password == "" {
-		respondWithError(w, http.StatusBadRequest, "Password is required")
+	if !validEmail(params.Email) || params.Password == "" || len(params.Password) > 1024 {
+		respondWithError(w, http.StatusBadRequest, "Valid email and password (1–1024 bytes) are required")
 		return
 	}
 	hash, err := auth.HashPassword(params.Password)
@@ -40,6 +32,11 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		Email: params.Email, HashedPassword: hash,
 	})
 	if err != nil {
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			respondWithError(w, http.StatusConflict, "Email is already in use")
+			return
+		}
 		log.Printf("Failed to create user: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "Failed to create user")
 		return
@@ -54,13 +51,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&params); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid JSON")
-		return
-	}
-	if err := decoder.Decode(new(any)); err != io.EOF {
-		respondWithError(w, http.StatusBadRequest, "Invalid JSON")
+	if !decodeJSON(w, r, &params) {
 		return
 	}
 	user, err := cfg.dbQueries.GetUserByEmail(r.Context(), params.Email)
@@ -146,16 +137,10 @@ func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request) 
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&params); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid JSON")
+	if !decodeJSON(w, r, &params) {
 		return
 	}
-	if err := decoder.Decode(new(any)); err != io.EOF {
-		respondWithError(w, http.StatusBadRequest, "Invalid JSON")
-		return
-	}
-	if params.Email == "" || params.Password == "" {
+	if !validEmail(params.Email) || params.Password == "" || len(params.Password) > 1024 {
 		respondWithError(w, http.StatusBadRequest, "Email and password are required")
 		return
 	}
