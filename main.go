@@ -141,7 +141,18 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 }
 
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
-	rows, err := cfg.dbQueries.GetChirps(r.Context())
+	var rows []database.Chirp
+	var err error
+	if author := r.URL.Query().Get("author_id"); author != "" {
+		authorID, parseErr := uuid.Parse(author)
+		if parseErr != nil {
+			respondWithError(w, http.StatusBadRequest, "Invalid author ID")
+			return
+		}
+		rows, err = cfg.dbQueries.GetChirpsByAuthor(r.Context(), authorID)
+	} else {
+		rows, err = cfg.dbQueries.GetChirps(r.Context())
+	}
 	if err != nil {
 		log.Printf("Failed to get chirps: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "Failed to get chirps")
