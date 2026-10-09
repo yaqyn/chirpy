@@ -33,6 +33,7 @@ jobs:
       - run: goose -dir sql/schema postgres "$TEST_DB_URL" up
       - run: make check
       - run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+      - run: python scripts/generate_openapi.py && git diff --exit-code -- docs/openapi.json
       - run: make build
       - run: sqlc generate && git diff --exit-code -- internal/database
       - run: goose -dir sql/schema postgres "$TEST_DB_URL" down && goose -dir sql/schema postgres "$TEST_DB_URL" up
