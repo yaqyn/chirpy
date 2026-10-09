@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+SETTINGS="$ROOT/.threadline.env"
+ACTION="${1:-start}"
+if [[ -t 1 ]]; then ACCENT=$'\033[36m'; RESET=$'\033[0m'; else ACCENT=''; RESET=''; fi
+say() { printf '%sThreadline%s · %s\n' "$ACCENT" "$RESET" "$*"; }
+fail() { printf 'Threadline: %s\n' "$*" >&2; exit 1; }
+help() {
+  cat <<'HELP'
+Threadline — Social Publishing API
+
+Usage: ./scripts/threadline [start|stop|status|logs|doctor|help]
+
+  start   Build, migrate, launch, and wait for health (default)
+  stop    Stop containers; preserve database and settings
+  status  Show running services
+  logs    Follow API logs (Ctrl+C exits logs, not the server)
+  doctor  Check local prerequisites and Compose configuration
+
+Requires Docker Engine + Compose v2. First start also requires OpenSSL
+and internet access to pull images and build tools.
+Settings: .threadline.env (generated once; edit API_PORT/DATABASE_PORT
+if default ports 8080/5433 are occupied). Your .env remains untouched.
+HELP
+}
+case "$ACTION" in help|-h|--help) help; exit 0;; start|stop|status|logs|doctor) ;; *) help; fail "Unknown command: $ACTION";; esac
+command -v docker >/dev/null || fail 'Docker is missing. Install Docker Engine or Docker Desktop, then rerun this command.'
+docker compose version >/dev/null 2>&1 || fail 'Docker Compose v2 is missing. Install the Compose plugin or Docker Desktop.'
+docker info >/dev/null 2>&1 || fail 'Cannot access Docker. Start Docker and check your user permissions; then rerun.'
+if [[ ! -f "$SETTINGS" ]]; then
+  if [[ "$ACTION" != start ]]; then
+    if [[ "$ACTION" == doctor ]]; then say 'Docker is ready. Run ./scripts/threadline start to create settings.'; exit 0; fi
+    fail 'No launcher settings yet. Run ./scripts/threadline start first.'
+  fi
+  command -v openssl >/dev/null || fail 'OpenSSL is needed to generate local credentials. Install it and rerun.'
+  umask 077
+  temporary="$(mktemp "$SETTINGS.XXXXXX")"
+  trap 'if [[ -n "${temporary:-}" && -f "$temporary" ]]; then unlink "$temporary"; fi' EXIT
+  printf 'JWT_SECRET=%s\nPOLKA_KEY=%s\nPOSTGRES_PASSWORD=%s\nPLATFORM=production\nAPI_PORT=8080\nDATABASE_PORT=5433\n' \
+    "$(openssl rand -hex 64)" "$(openssl rand -hex 32)" "$(openssl rand -hex 32)" > "$temporary"
+  # Atomic no-clobber creation also avoids replacing another launcher's settings.
+  if ln "$temporary" "$SETTINGS" 2>/dev/null; then say 'Created private local settings; .env was preserved.'; fi
+  unlink "$temporary"
+  temporary=''
+fi
+chmod 600 "$SETTINGS"
+compose() { docker compose --project-name threadline --env-file "$SETTINGS" -f "$ROOT/compose.yaml" "$@"; }
+compose config --quiet || fail 'Configuration is invalid. Check .threadline.env; no settings were overwritten.'
+case "$ACTION" in
+  start)
+    say 'Building and starting services. The first build can take several minutes.'
+    if ! compose up --detach --build --wait --wait-timeout 120; then
+      say 'Startup did not complete. Existing data is preserved.'
+      printf 'Try: ./scripts/threadline logs\nCheck port conflicts or run: ./scripts/threadline doctor\n' >&2
+      exit 1
+    fi
+    port="$(sed -n 's/^API_PORT=//p' "$SETTINGS" | tail -n 1)"
+    port="${API_PORT:-${port:-8080}}"
+    say "Ready at http://localhost:$port"
+    printf '  Health: http://localhost:%s/api/healthz\n  Public page: http://localhost:%s/app/\n  Feed: http://localhost:%s/api/chirps\n' "$port" "$port" "$port"
+    printf '\nNext: see docs/API.md for signup and publishing.\nStop: ./scripts/threadline stop (data stays saved).\n'
+    ;;
+  stop) compose down; say 'Stopped. Database volume and settings preserved.';;
+  status) compose ps --all;;
+  logs) compose logs --follow --tail 100 api;;
+  doctor) say 'Docker and Compose are ready; configuration is valid.'; compose ps --all;;
+esac

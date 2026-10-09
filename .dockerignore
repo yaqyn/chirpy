@@ -6,3 +6,5 @@ out
 chirpy
 docs
 *.log
+
+.threadline.env*

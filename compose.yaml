@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-threadline-local}
       POSTGRES_DB: threadline
     ports:
-      - "127.0.0.1:5433:5432"
+      - "127.0.0.1:${DATABASE_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
@@ -14,8 +14,19 @@ services:
       interval: 3s
       timeout: 3s
       retries: 20
+  migrate:
+    build:
+      context: .
+      target: migrations
+    environment:
+      DB_URL: postgres://postgres:${POSTGRES_PASSWORD:-threadline-local}@db:5432/threadline?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
   api:
-    build: .
+    build:
+      context: .
+      target: runtime
     environment:
       DB_URL: postgres://postgres:${POSTGRES_PASSWORD:-threadline-local}@db:5432/threadline?sslmode=disable
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
@@ -23,10 +34,12 @@ services:
       PLATFORM: ${PLATFORM:-production}
       ADDR: :8080
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:${API_PORT:-8080}:8080"
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/api/healthz"]
       interval: 10s
