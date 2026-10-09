@@ -1,6 +1,6 @@
 module github.com/yaqyn/chirpy
 
-go 1.27.1
+go 1.27.2
 
 require (
 	github.com/alexedwards/argon2id v1.0.0
