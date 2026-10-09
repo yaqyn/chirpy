@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"sync/atomic"
 	"unicode/utf8"
 )
@@ -48,8 +49,19 @@ func handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondWithJSON(w, http.StatusOK, struct {
-		Valid bool `json:"valid"`
-	}{Valid: true})
+		CleanedBody string `json:"cleaned_body"`
+	}{CleanedBody: cleanChirp(params.Body)})
+}
+
+func cleanChirp(body string) string {
+	words := strings.Split(body, " ")
+	for i, word := range words {
+		switch strings.ToLower(word) {
+		case "kerfuffle", "sharbert", "fornax":
+			words[i] = "****"
+		}
+	}
+	return strings.Join(words, " ")
 }
 
 func respondWithError(w http.ResponseWriter, code int, msg string) {
