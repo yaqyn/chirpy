@@ -62,6 +62,7 @@ func main() {
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	mux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
 	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetChirps)
+	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetChirp)
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
@@ -126,6 +127,28 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	respondWithJSON(w, http.StatusOK, chirps)
+}
+
+func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(r.PathValue("chirpID"))
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid chirp ID")
+		return
+	}
+	chirp, err := cfg.dbQueries.GetChirp(r.Context(), id)
+	if errors.Is(err, sql.ErrNoRows) {
+		respondWithError(w, http.StatusNotFound, "Chirp not found")
+		return
+	}
+	if err != nil {
+		log.Printf("Failed to get chirp: %v", err)
+		respondWithError(w, http.StatusInternalServerError, "Failed to get chirp")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, Chirp{
+		ID: chirp.ID, CreatedAt: chirp.CreatedAt, UpdatedAt: chirp.UpdatedAt,
+		Body: chirp.Body, UserID: chirp.UserID,
+	})
 }
 
 func cleanChirp(body string) string {
