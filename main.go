@@ -1,22 +1,44 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync/atomic"
 	"unicode/utf8"
+
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
+	"github.com/yaqyn/chirpy/internal/database"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
+	dbQueries      *database.Queries
 }
 
 func main() {
-	apiCfg := &apiConfig{}
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("Failed to load .env: ", err)
+	}
+	dbURL := os.Getenv("DB_URL")
+	if dbURL == "" {
+		log.Fatal("DB_URL is required")
+	}
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatal("Failed to open database: ", err)
+	}
+	defer db.Close()
+	if err := db.Ping(); err != nil {
+		log.Fatal("Failed to connect to database: ", err)
+	}
+	apiCfg := &apiConfig{dbQueries: database.New(db)}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	mux.HandleFunc("POST /api/validate_chirp", handlerValidateChirp)
