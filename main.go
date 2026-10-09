@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/subtle"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -26,6 +27,7 @@ type apiConfig struct {
 	dbQueries      *database.Queries
 	platform       string
 	jwtSecret      string
+	polkaKey       string
 }
 
 type User struct {
@@ -64,7 +66,11 @@ func main() {
 	if jwtSecret == "" {
 		log.Fatal("JWT_SECRET is required")
 	}
-	apiCfg := &apiConfig{dbQueries: database.New(db), platform: os.Getenv("PLATFORM"), jwtSecret: jwtSecret}
+	polkaKey := os.Getenv("POLKA_KEY")
+	if polkaKey == "" {
+		log.Fatal("POLKA_KEY is required")
+	}
+	apiCfg := &apiConfig{dbQueries: database.New(db), platform: os.Getenv("PLATFORM"), jwtSecret: jwtSecret, polkaKey: polkaKey}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	mux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
@@ -457,6 +463,11 @@ func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request)
 }
 
 func (cfg *apiConfig) handlerPolkaWebhook(w http.ResponseWriter, r *http.Request) {
+	key, err := auth.GetAPIKey(r.Header)
+	if err != nil || subtle.ConstantTimeCompare([]byte(key), []byte(cfg.polkaKey)) != 1 {
+		respondWithError(w, http.StatusUnauthorized, "Invalid or missing API key")
+		return
+	}
 	var params struct {
 		Event string          `json:"event"`
 		Data  json.RawMessage `json:"data"`
@@ -481,7 +492,7 @@ func (cfg *apiConfig) handlerPolkaWebhook(w http.ResponseWriter, r *http.Request
 		respondWithError(w, http.StatusBadRequest, "Invalid user data")
 		return
 	}
-	_, err := cfg.dbQueries.UpgradeUserToChirpyRed(r.Context(), data.UserID)
+	_, err = cfg.dbQueries.UpgradeUserToChirpyRed(r.Context(), data.UserID)
 	if errors.Is(err, sql.ErrNoRows) {
 		respondWithError(w, http.StatusNotFound, "User not found")
 		return
