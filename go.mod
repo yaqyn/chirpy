@@ -1,4 +1,4 @@
-module github.com/yaqyn/chirpy
+module github.com/yaqyn/threadline-social-api
 
 go 1.27.2
 

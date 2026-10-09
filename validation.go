@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
-	"github.com/yaqyn/chirpy/internal/database"
+	"github.com/yaqyn/threadline-social-api/internal/database"
 	"io"
 	"net/http"
 	"net/mail"

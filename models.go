@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/google/uuid"
-	"github.com/yaqyn/chirpy/internal/database"
+	"github.com/yaqyn/threadline-social-api/internal/database"
 	"sync/atomic"
 	"time"
 )

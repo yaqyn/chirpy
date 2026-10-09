@@ -13,7 +13,7 @@ import (
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	"github.com/yaqyn/chirpy/internal/database"
+	"github.com/yaqyn/threadline-social-api/internal/database"
 )
 
 func main() {

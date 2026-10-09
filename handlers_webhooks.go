@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
-	"github.com/yaqyn/chirpy/internal/auth"
+	"github.com/yaqyn/threadline-social-api/internal/auth"
 	"io"
 	"net/http"
 )
