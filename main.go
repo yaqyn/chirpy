@@ -25,6 +25,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	dbQueries      *database.Queries
 	platform       string
+	jwtSecret      string
 }
 
 type User struct {
@@ -58,7 +59,11 @@ func main() {
 	if err := db.Ping(); err != nil {
 		log.Fatal("Failed to connect to database: ", err)
 	}
-	apiCfg := &apiConfig{dbQueries: database.New(db), platform: os.Getenv("PLATFORM")}
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET is required")
+	}
+	apiCfg := &apiConfig{dbQueries: database.New(db), platform: os.Getenv("PLATFORM"), jwtSecret: jwtSecret}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	mux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
@@ -78,9 +83,18 @@ func main() {
 }
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid or missing token")
+		return
+	}
+	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid or missing token")
+		return
+	}
 	var params struct {
-		Body   string    `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&params); err != nil {
@@ -96,7 +110,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	chirp, err := cfg.dbQueries.CreateChirp(r.Context(), database.CreateChirpParams{
-		Body: cleanChirp(params.Body), UserID: params.UserID,
+		Body: cleanChirp(params.Body), UserID: userID,
 	})
 	if err != nil {
 		var pgErr *pq.Error
@@ -253,8 +267,9 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	var params struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Email            string `json:"email"`
+		Password         string `json:"password"`
+		ExpiresInSeconds *int64 `json:"expires_in_seconds"`
 	}
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&params); err != nil {
@@ -275,9 +290,23 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password")
 		return
 	}
-	respondWithJSON(w, http.StatusOK, User{
-		ID: user.ID, CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt, Email: user.Email,
-	})
+	expiresIn := time.Hour
+	if params.ExpiresInSeconds != nil && *params.ExpiresInSeconds < 3600 {
+		if *params.ExpiresInSeconds < 0 {
+			respondWithError(w, http.StatusBadRequest, "Expiration must not be negative")
+			return
+		}
+		expiresIn = time.Duration(*params.ExpiresInSeconds) * time.Second
+	}
+	token, err := auth.MakeJWT(user.ID, cfg.jwtSecret, expiresIn)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to create token")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, struct {
+		User
+		Token string `json:"token"`
+	}{User: User{ID: user.ID, CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt, Email: user.Email}, Token: token})
 }
 
 func handlerReadiness(w http.ResponseWriter, r *http.Request) {
