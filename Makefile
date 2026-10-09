@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
-.PHONY: help build run test integration vet check generate tools migrate-up migrate-down
+.PHONY: start stop status logs doctor help build run test integration vet check generate tools migrate-up migrate-down
 help:
-	@echo 'build run test integration vet check generate tools migrate-up migrate-down'
+	@echo 'start stop status logs doctor build run test integration vet check generate tools migrate-up migrate-down'
 build:
 	go build -trimpath -o out .
 run: build
@@ -24,3 +24,6 @@ migrate-up:
 	@set -a; if [ -f .env ]; then . ./.env; fi; set +a; goose -dir sql/schema postgres "$$DB_URL" up
 migrate-down:
 	@set -a; if [ -f .env ]; then . ./.env; fi; set +a; goose -dir sql/schema postgres "$$DB_URL" down
+
+start stop status logs doctor:
+	./scripts/threadline $@

@@ -12,28 +12,58 @@ and starts the binary. Running from the project root is required for the public
 asset directory. An existing Chirpy database works with the preserved schema;
 back it up before applying new migrations. Migration 006 adds only indexes.
 
-## Docker Compose
+## One-command container setup
 
-Docker daemon access is required. This is a local setup with loopback-bound ports.
+Requires Docker Engine/Desktop with Compose v2 and OpenSSL. From a checkout:
 
 ```bash
-cp .env.example .env
-# Edit JWT_SECRET, POLKA_KEY, and POSTGRES_PASSWORD first.
-docker compose up -d db
-
-# In .env, set DB_URL to the Compose database's host-facing URL:
-# postgres://postgres:YOUR_PASSWORD@localhost:5433/threadline?sslmode=disable
-make tools
-make migrate-up
-docker compose up -d --build api
-curl -i http://localhost:8080/api/healthz
+./scripts/threadline start
 ```
 
-Compose passes the internal database URL to the API automatically. A named volume
-persists PostgreSQL data. `docker compose down` keeps the volume; `down -v`
-permanently deletes it. The runtime image contains the binary and public files,
-uses a non-root user, and receives secrets through environment variables.
-Migrations are an explicit step, not executed by each application replica.
+For a fresh installation:
+
+```bash
+git clone https://github.com/yaqyn/threadline-social-api.git && cd threadline-social-api && ./scripts/threadline start
+```
+
+The launcher checks Docker access before changing files. It generates random
+JWT, webhook, and database credentials once into `.threadline.env` with mode
+600. Existing settings and your native `.env` are preserved. Database startup,
+Goose migrations, and API startup are ordered through Compose dependencies;
+startup returns only when service health checks pass. Subsequent starts apply
+pending migrations without resetting the data. First builds need internet
+access and can take several minutes.
+
+| Command | Behavior |
+|---|---|
+| `./scripts/threadline start` | Build, migrate, start, and wait for health |
+| `./scripts/threadline stop` | Stop containers; preserve volume and credentials |
+| `./scripts/threadline status` | Show service state, including migration job |
+| `./scripts/threadline logs` | Follow API logs; Ctrl+C leaves the API running |
+| `./scripts/threadline doctor` | Check Docker, Compose, and configuration |
+| `./scripts/threadline help` | Show command help without requiring Docker |
+
+The API is exposed only on `127.0.0.1:8080`; PostgreSQL on `127.0.0.1:5433`.
+Edit `API_PORT` and `DATABASE_PORT` in `.threadline.env` to avoid occupied ports.
+The launcher defaults to a non-dev platform, so destructive reset is disabled.
+The generated Polka key is for local webhook experiments; replace it with your
+provider's real key if integrating a real provider.
+
+Do not change `POSTGRES_PASSWORD` after database initialization without also
+changing the database role password. Container environment changes do not
+rewrite credentials inside an existing volume. Stop/start preserves data.
+Do not use `docker compose down -v` unless intentionally discarding the database.
+
+Advanced Compose users can supply their own env file:
+
+```bash
+docker compose --project-name threadline --env-file .threadline.env up -d --build --wait
+```
+
+The runtime and migration images use non-root users. Only public files enter the
+runtime image; settings and secrets are excluded from both Git and build context.
+The migration service runs Goose before the API starts. For hosted deployments,
+run migrations as one release job rather than concurrently across replicas.
 
 ## Day-to-day commands
 

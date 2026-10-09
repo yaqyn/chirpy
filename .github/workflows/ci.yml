@@ -38,3 +38,14 @@ jobs:
       - run: sqlc generate && git diff --exit-code -- internal/database
       - run: goose -dir sql/schema postgres "$TEST_DB_URL" down && goose -dir sql/schema postgres "$TEST_DB_URL" up
       - run: docker build -t threadline:ci .
+      - run: bash -n scripts/threadline && ./scripts/threadline help
+      - name: Verify one-command startup
+        run: |
+          ./scripts/threadline start
+          curl --fail http://localhost:8080/api/healthz
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/app/.env)" = 404
+          ./scripts/threadline status
+      - name: Stop launcher services
+        if: always()
+        run: |
+          if [ -f .threadline.env ]; then ./scripts/threadline stop; fi

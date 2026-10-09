@@ -67,6 +67,30 @@ remains usable until its expiration.
 
 ## <img src="docs/readme/icons/setup.svg" width="26" height="26" alt=""> Run locally
 
+**One-line setup** — requires Git, Docker Engine/Desktop with Compose v2, and OpenSSL:
+
+```bash
+git clone https://github.com/yaqyn/threadline-social-api.git && cd threadline-social-api && ./scripts/threadline start
+```
+
+The launcher generates private credentials, builds the containers, waits for
+PostgreSQL, applies migrations, and prints the local URLs when the API is healthy.
+No separate Go, Goose, or PostgreSQL install is needed for this path. The first
+build takes several minutes; subsequent starts reuse cached images and data.
+
+```bash
+./scripts/threadline status  # service health
+./scripts/threadline logs    # follow API logs
+./scripts/threadline stop    # stop without deleting your data
+./scripts/threadline doctor  # dependency and configuration checks
+```
+
+Settings live in ignored `.threadline.env`; your course `.env` is untouched.
+Reset is disabled by default. Edit `API_PORT` or `DATABASE_PORT` in the launcher
+settings if 8080 or 5433 is occupied. Stop and start to apply changed settings.
+
+**Prefer native development?** Continue below.
+
 **Requirements:** Go 1.27.2 or newer, PostgreSQL 15 or newer, Bash, and the
 `psql` client. Docker Compose is an optional way to run PostgreSQL and the API.
 
