@@ -61,6 +61,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	mux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
+	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetChirps)
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
@@ -108,6 +109,23 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		ID: chirp.ID, CreatedAt: chirp.CreatedAt, UpdatedAt: chirp.UpdatedAt,
 		Body: chirp.Body, UserID: chirp.UserID,
 	})
+}
+
+func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
+	rows, err := cfg.dbQueries.GetChirps(r.Context())
+	if err != nil {
+		log.Printf("Failed to get chirps: %v", err)
+		respondWithError(w, http.StatusInternalServerError, "Failed to get chirps")
+		return
+	}
+	chirps := make([]Chirp, 0, len(rows))
+	for _, row := range rows {
+		chirps = append(chirps, Chirp{
+			ID: row.ID, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+			Body: row.Body, UserID: row.UserID,
+		})
+	}
+	respondWithJSON(w, http.StatusOK, chirps)
 }
 
 func cleanChirp(body string) string {
