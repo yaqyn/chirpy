@@ -53,7 +53,7 @@ sequenceDiagram
     A->>D: Store 60-day refresh token
     A-->>C: User + access token + refresh token
     C->>A: Publish with access token
-    A->>A: Verify JWT; derive author ID
+    A->>A: Verify JWT and derive author ID
     A->>D: Save validated chirp
     A-->>C: 201 Created
     C->>A: Refresh with refresh token
