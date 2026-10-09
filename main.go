@@ -10,8 +10,10 @@ import (
 	"os"
 	"strings"
 	"sync/atomic"
+	"time"
 	"unicode/utf8"
 
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/yaqyn/chirpy/internal/database"
@@ -20,6 +22,14 @@ import (
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	dbQueries      *database.Queries
+	platform       string
+}
+
+type User struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Email     string    `json:"email"`
 }
 
 func main() {
@@ -38,10 +48,11 @@ func main() {
 	if err := db.Ping(); err != nil {
 		log.Fatal("Failed to connect to database: ", err)
 	}
-	apiCfg := &apiConfig{dbQueries: database.New(db)}
+	apiCfg := &apiConfig{dbQueries: database.New(db), platform: os.Getenv("PLATFORM")}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	mux.HandleFunc("POST /api/validate_chirp", handlerValidateChirp)
+	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(".")))))
@@ -124,8 +135,41 @@ func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
+	if cfg.platform != "dev" {
+		respondWithError(w, http.StatusForbidden, "Reset is only available in dev")
+		return
+	}
+	if err := cfg.dbQueries.DeleteAllUsers(r.Context()); err != nil {
+		log.Printf("Failed to delete users: %v", err)
+		respondWithError(w, http.StatusInternalServerError, "Failed to reset users")
+		return
+	}
 	cfg.fileserverHits.Store(0)
 	w.WriteHeader(http.StatusOK)
+}
+
+func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
+	var params struct {
+		Email string `json:"email"`
+	}
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&params); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+	if err := decoder.Decode(new(any)); err != io.EOF {
+		respondWithError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+	user, err := cfg.dbQueries.CreateUser(r.Context(), params.Email)
+	if err != nil {
+		log.Printf("Failed to create user: %v", err)
+		respondWithError(w, http.StatusInternalServerError, "Failed to create user")
+		return
+	}
+	respondWithJSON(w, http.StatusCreated, User{
+		ID: user.ID, CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt, Email: user.Email,
+	})
 }
 
 func handlerReadiness(w http.ResponseWriter, r *http.Request) {
