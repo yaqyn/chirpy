@@ -213,23 +213,6 @@ Deleting a user cascades to their chirps and refresh tokens. Goose owns schema
 migrations; SQLC generates typed Go queries from SQL. Composite feed indexes and
 an index on refresh-token ownership support the main access patterns.
 
-## <img src="docs/readme/icons/security.svg" width="24" height="24" alt=""> Security and boundaries
-
-- Passwords are hashed with salted Argon2id; user resources never contain hashes.
-- Access tokens require HS256, the expected issuer, and an expiration claim.
-- Authorization comes from verified token subjects, not submitted user IDs.
-- Webhook keys are checked before an event is processed.
-- Only `public/` is served; source files and `.env` are outside the static root.
-- JSON requests are capped at 64 KiB; oversized payloads receive `413`.
-- HTTP timeouts and a bounded database pool limit resource usage.
-- Shutdown drains requests for up to 10 seconds before exiting.
-
-**Deployment boundary:** terminate HTTPS at a trusted reverse proxy, apply
-request-rate limits, and keep `PLATFORM` out of `dev`. Refresh tokens are stored
-as opaque plaintext credentials in this implementation; protect database access
-and backups. Metrics are public and reset is intentionally a course development
-tool. [Read the operating constraints before hosting →](docs/SECURITY.md)
-
 ## <img src="docs/readme/icons/verification.svg" width="24" height="24" alt=""> Verification
 
 ```bash
@@ -258,6 +241,23 @@ Database integration tests skip locally unless `TEST_DB_URL` is supplied.
 | `internal/database/` | SQLC-generated code; do not edit by hand |
 | `sql/schema/`, `sql/queries/` | Schema history and database operations |
 | `docs/` | API, architecture, operations, security, and brand assets |
+
+## <img src="docs/readme/icons/security.svg" width="24" height="24" alt=""> Security and boundaries
+
+- Passwords are hashed with salted Argon2id; user resources never contain hashes.
+- Access tokens require HS256, the expected issuer, and an expiration claim.
+- Authorization comes from verified token subjects, not submitted user IDs.
+- Webhook keys are checked before an event is processed.
+- Only `public/` is served; source files and `.env` are outside the static root.
+- JSON requests are capped at 64 KiB; oversized payloads receive `413`.
+- HTTP timeouts and a bounded database pool limit resource usage.
+- Shutdown drains requests for up to 10 seconds before exiting.
+
+**Deployment boundary:** terminate HTTPS at a trusted reverse proxy, apply
+request-rate limits, and keep `PLATFORM` out of `dev`. Refresh tokens are stored
+as opaque plaintext credentials in this implementation; protect database access
+and backups. Metrics are public and reset is intentionally a course development
+tool. [Read the operating constraints before hosting →](docs/SECURITY.md)
 
 ## <img src="docs/readme/icons/roadmap.svg" width="24" height="24" alt=""> Roadmap
 
