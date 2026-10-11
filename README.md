@@ -2,9 +2,6 @@
 
 # Threadline — Social Publishing API
 
-> **Learning Journey Project · Boot.dev**
-> Developed through the Chirpy backend course and extended with practical API hardening.
-
 **Publish short posts through an authenticated Go and PostgreSQL API.**
 
 A Go and PostgreSQL API for short-form social publishing. Threadline connects
@@ -272,3 +269,6 @@ operations with authenticated administration.
 ## <img src="docs/readme/icons/owner.svg" width="24" height="24" alt=""> Maintainer
 
 Designed, developed, and maintained by [Abdulrahman M. Yaqyn](https://github.com/yaqyn).
+
+> **Learning Journey Project · Boot.dev**
+> Developed through the Chirpy backend course and extended with practical API hardening.
