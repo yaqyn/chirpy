@@ -5,7 +5,7 @@
 > **Learning Journey Project · Boot.dev**
 > Developed through the Chirpy backend course and extended with practical API hardening.
 
-**The backend behind the conversation.**
+**Publish short posts through an authenticated Go and PostgreSQL API.**
 
 A Go and PostgreSQL API for short-form social publishing. Threadline connects
 accounts, authenticated posts, renewable sessions, and paid membership events
@@ -20,7 +20,7 @@ through a small, explicit HTTP contract.
 [OpenAPI specification](docs/openapi.json) · [Architecture](docs/ARCHITECTURE.md) ·
 [Security & operations](docs/SECURITY.md)
 
-## <img src="docs/readme/icons/overview.svg" width="24" height="24" alt=""> Publish with identity
+## <img src="docs/readme/icons/features.svg" width="24" height="24" alt=""> Features
 
 Create an account, sign in, and publish a message of up to **140 Unicode code
 points**. The access token determines the author; a caller cannot choose another
@@ -37,38 +37,11 @@ and bounded pagination. Only an author can delete their own post.
 | Membership | API-key-protected Polka webhooks upgrade a user |
 | Operations | Process readiness, static-request metrics, development-only reset |
 
-Built from the Boot.dev **Chirpy** backend project and extended with runtime
-hardening, regression tests, pagination, database indexes, CI, and documentation.
 The course’s `/api/chirps`, `is_chirpy_red`, and `chirpy-access` names remain in the
 API for compatibility. Threadline is the project brand; this is a backend,
 not a complete social-network frontend.
 
-## <img src="docs/readme/icons/flow.svg" width="24" height="24" alt=""> One account. A continuous session.
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant A as Threadline API
-    participant D as PostgreSQL
-    C->>A: Email + password
-    A->>D: Look up password hash
-    A->>A: Compare with Argon2id
-    A->>D: Store 60-day refresh token
-    A-->>C: User + access token + refresh token
-    C->>A: Publish with access token
-    A->>A: Verify JWT and derive author ID
-    A->>D: Save validated chirp
-    A-->>C: 201 Created
-    C->>A: Refresh with refresh token
-    A->>D: Check expiration and revocation
-    A-->>C: New one-hour access token
-```
-
-A refresh token cannot publish a post. An access token cannot refresh a session.
-Revoking a refresh token stops future renewals; an already issued access token
-remains usable until its expiration.
-
-## <img src="docs/readme/icons/setup.svg" width="24" height="24" alt=""> Run locally
+## <img src="docs/readme/icons/installation.svg" width="24" height="24" alt=""> Installation
 
 **One-line setup** — requires Git, Docker Engine/Desktop with Compose v2, and OpenSSL:
 
@@ -136,7 +109,7 @@ for Compose, migration, and deployment instructions.
 | `PLATFORM` | Enables reset only when exactly `dev` | Reset disabled |
 | `TEST_DB_URL` | Disposable, migrated integration-test database | Tests skip without it |
 
-## <img src="docs/readme/icons/api.svg" width="24" height="24" alt=""> An explicit HTTP contract
+## <img src="docs/readme/icons/api.svg" width="24" height="24" alt=""> API reference
 
 | Method | Endpoint | Authorization | Success |
 |---|---|---|---|
@@ -180,24 +153,32 @@ ID ascending as a stable tie-breaker. No results returns `[]`.
 
 [Full request/response examples and error semantics →](docs/API.md)
 
-## <img src="docs/readme/icons/security.svg" width="24" height="24" alt=""> Keep credentials out of the conversation
+## <img src="docs/readme/icons/workflow.svg" width="24" height="24" alt=""> Session workflow
 
-- Passwords are hashed with salted Argon2id; user resources never contain hashes.
-- Access tokens require HS256, the expected issuer, and an expiration claim.
-- Authorization comes from verified token subjects, not submitted user IDs.
-- Webhook keys are checked before an event is processed.
-- Only `public/` is served; source files and `.env` are outside the static root.
-- JSON requests are capped at 64 KiB; oversized payloads receive `413`.
-- HTTP timeouts and a bounded database pool limit resource usage.
-- Shutdown drains requests for up to 10 seconds before exiting.
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as Threadline API
+    participant D as PostgreSQL
+    C->>A: Email + password
+    A->>D: Look up password hash
+    A->>A: Compare with Argon2id
+    A->>D: Store 60-day refresh token
+    A-->>C: User + access token + refresh token
+    C->>A: Publish with access token
+    A->>A: Verify JWT and derive author ID
+    A->>D: Save validated chirp
+    A-->>C: 201 Created
+    C->>A: Refresh with refresh token
+    A->>D: Check expiration and revocation
+    A-->>C: New one-hour access token
+```
 
-**Deployment boundary:** terminate HTTPS at a trusted reverse proxy, apply
-request-rate limits, and keep `PLATFORM` out of `dev`. Refresh tokens are stored
-as opaque plaintext credentials in this implementation; protect database access
-and backups. Metrics are public and reset is intentionally a course development
-tool. [Read the operating constraints before hosting →](docs/SECURITY.md)
+A refresh token cannot publish a post. An access token cannot refresh a session.
+Revoking a refresh token stops future renewals; an already issued access token
+remains usable until its expiration.
 
-## <img src="docs/readme/icons/data.svg" width="24" height="24" alt=""> Small schema, clear ownership
+## <img src="docs/readme/icons/architecture.svg" width="24" height="24" alt=""> Architecture
 
 ```mermaid
 erDiagram
@@ -232,7 +213,24 @@ Deleting a user cascades to their chirps and refresh tokens. Goose owns schema
 migrations; SQLC generates typed Go queries from SQL. Composite feed indexes and
 an index on refresh-token ownership support the main access patterns.
 
-## <img src="docs/readme/icons/quality.svg" width="24" height="24" alt=""> Verify the behavior
+## <img src="docs/readme/icons/security.svg" width="24" height="24" alt=""> Security and boundaries
+
+- Passwords are hashed with salted Argon2id; user resources never contain hashes.
+- Access tokens require HS256, the expected issuer, and an expiration claim.
+- Authorization comes from verified token subjects, not submitted user IDs.
+- Webhook keys are checked before an event is processed.
+- Only `public/` is served; source files and `.env` are outside the static root.
+- JSON requests are capped at 64 KiB; oversized payloads receive `413`.
+- HTTP timeouts and a bounded database pool limit resource usage.
+- Shutdown drains requests for up to 10 seconds before exiting.
+
+**Deployment boundary:** terminate HTTPS at a trusted reverse proxy, apply
+request-rate limits, and keep `PLATFORM` out of `dev`. Refresh tokens are stored
+as opaque plaintext credentials in this implementation; protect database access
+and backups. Metrics are public and reset is intentionally a course development
+tool. [Read the operating constraints before hosting →](docs/SECURITY.md)
+
+## <img src="docs/readme/icons/verification.svg" width="24" height="24" alt=""> Verification
 
 ```bash
 make check       # go vet, race-enabled tests, formatting
@@ -261,7 +259,7 @@ Database integration tests skip locally unless `TEST_DB_URL` is supplied.
 | `sql/schema/`, `sql/queries/` | Schema history and database operations |
 | `docs/` | API, architecture, operations, security, and brand assets |
 
-## <img src="docs/readme/icons/roadmap.svg" width="24" height="24" alt=""> Where it goes next
+## <img src="docs/readme/icons/roadmap.svg" width="24" height="24" alt=""> Roadmap
 
 The implemented scope is deliberately focused. Post editing, social graphs,
 media uploads, search, refresh-token rotation, and a full client are future work.
@@ -271,7 +269,6 @@ Before broader deployment: add gateway rate limiting, hash stored refresh
 credentials, define retention/cleanup policies, and replace development admin
 operations with authenticated administration.
 
-## <img src="docs/readme/icons/owner.svg" width="24" height="24" alt=""> Built by Abdulrahman M. Yaqyn
+## <img src="docs/readme/icons/owner.svg" width="24" height="24" alt=""> Maintainer
 
 Designed, developed, and maintained by [Abdulrahman M. Yaqyn](https://github.com/yaqyn).
-Origin: the Boot.dev Chirpy project, extended into Threadline.
