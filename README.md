@@ -64,8 +64,8 @@ settings if 8080 or 5433 is occupied. Stop and start to apply changed settings.
 
 **Prefer native development?** Continue below.
 
-**Requirements:** Go 1.27.2 or newer, PostgreSQL 15 or newer, Bash, and the
-`psql` client. Docker Compose is an optional way to run PostgreSQL and the API.
+**Requirements:** Git, Make, OpenSSL, Go 1.27.2 or newer, PostgreSQL 15 or newer,
+Bash, and the `psql` client. Go-installed tools must be on your `PATH`. Docker Compose is an optional way to run PostgreSQL and the API.
 
 ```bash
 git clone https://github.com/yaqyn/threadline-social-api.git
@@ -210,6 +210,17 @@ Deleting a user cascades to their chirps and refresh tokens. Goose owns schema
 migrations; SQLC generates typed Go queries from SQL. Composite feed indexes and
 an index on refresh-token ownership support the main access patterns.
 
+| Location | Responsibility |
+|---|---|
+| `main.go` | Configuration, connection pool, server lifecycle |
+| `router.go`, `middleware.go` | Routes, limits, response headers |
+| `handlers_*.go` | Accounts, chirps, administration, payment events |
+| `validation.go`, `http_helpers.go` | Input rules and JSON responses |
+| `internal/auth/` | Passwords, JWTs, refresh randomness, headers |
+| `internal/database/` | SQLC-generated code; do not edit by hand |
+| `sql/schema/`, `sql/queries/` | Schema history and database operations |
+| `docs/` | API, architecture, operations, security, and brand assets |
+
 ## <img src="docs/readme/icons/verification.svg" width="24" height="24" alt=""> Verification
 
 ```bash
@@ -227,17 +238,6 @@ extraction, JSON validation, query parameters, profanity replacement, static-fil
 isolation, authorization guards, and real PostgreSQL account/session workflows.
 CI also checks SQLC drift, migration rollback/reapply, and the container build.
 Database integration tests skip locally unless `TEST_DB_URL` is supplied.
-
-| Location | Responsibility |
-|---|---|
-| `main.go` | Configuration, connection pool, server lifecycle |
-| `router.go`, `middleware.go` | Routes, limits, response headers |
-| `handlers_*.go` | Accounts, chirps, administration, payment events |
-| `validation.go`, `http_helpers.go` | Input rules and JSON responses |
-| `internal/auth/` | Passwords, JWTs, refresh randomness, headers |
-| `internal/database/` | SQLC-generated code; do not edit by hand |
-| `sql/schema/`, `sql/queries/` | Schema history and database operations |
-| `docs/` | API, architecture, operations, security, and brand assets |
 
 ## <img src="docs/readme/icons/security.svg" width="24" height="24" alt=""> Security and boundaries
 
