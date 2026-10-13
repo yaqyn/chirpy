@@ -1,4 +1,4 @@
-![Threadline — Social Publishing API](docs/readme/cover.png)
+![Threadline — Social Publishing API](docs/readme/cover.webp)
 
 # Threadline — Social Publishing API
 
