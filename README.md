@@ -243,7 +243,7 @@ Database integration tests skip locally unless `TEST_DB_URL` is supplied.
 
 - Passwords are hashed with salted Argon2id; user resources never contain hashes.
 - Access tokens require HS256, the expected issuer, and an expiration claim.
-- Authorization comes from verified token subjects, not submitted user IDs.
+- Authorization comes from verified token subjects, not submitted user IDs; duplicate authorization headers are rejected.
 - Webhook keys are checked before an event is processed.
 - Only `public/` is served; source files and `.env` are outside the static root.
 - JSON requests are capped at 64 KiB; oversized payloads receive `413`.

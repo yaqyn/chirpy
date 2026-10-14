@@ -30,3 +30,20 @@ func TestGetBearerToken(t *testing.T) {
 		})
 	}
 }
+
+func TestDuplicateAuthorizationIsRejected(t *testing.T) {
+	for _, scheme := range []string{"Bearer", "ApiKey"} {
+		headers := http.Header{}
+		headers.Add("Authorization", scheme+" first")
+		headers.Add("Authorization", scheme+" second")
+		if scheme == "Bearer" {
+			if _, err := GetBearerToken(headers); err == nil {
+				t.Fatal("accepted duplicate bearer headers")
+			}
+		} else {
+			if _, err := GetAPIKey(headers); err == nil {
+				t.Fatal("accepted duplicate API key headers")
+			}
+		}
+	}
+}
