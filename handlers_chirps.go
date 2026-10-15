@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -102,14 +103,25 @@ func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, r *http.Request) {
 }
 
 func cleanChirp(body string) string {
-	words := strings.Split(body, " ")
-	for i, word := range words {
+	var cleaned strings.Builder
+	writeWord := func(word string) {
 		switch strings.ToLower(word) {
 		case "kerfuffle", "sharbert", "fornax":
-			words[i] = "****"
+			cleaned.WriteString("****")
+		default:
+			cleaned.WriteString(word)
 		}
 	}
-	return strings.Join(words, " ")
+	start := 0
+	for index, char := range body {
+		if unicode.IsSpace(char) {
+			writeWord(body[start:index])
+			cleaned.WriteRune(char)
+			start = index + utf8.RuneLen(char)
+		}
+	}
+	writeWord(body[start:])
+	return cleaned.String()
 }
 
 func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request) {

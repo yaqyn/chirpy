@@ -42,6 +42,11 @@ func TestQueryValidation(t *testing.T) {
 	}
 }
 func TestCleanChirp(t *testing.T) {
+	for _, separator := range []string{"\t", "\n", "\r\n", "\u00a0", "\u2003"} {
+		if got := cleanChirp("hello" + separator + "FORNAX" + separator); got != "hello"+separator+"****"+separator {
+			t.Errorf("whitespace cleaning: %q", got)
+		}
+	}
 	for input, want := range map[string]string{"KERFUFFLE sharbert fornax": "**** **** ****", "Sharbert!": "Sharbert!", "a  kerfuffle": "a  ****", "plain text": "plain text"} {
 		if got := cleanChirp(input); got != want {
 			t.Fatalf("got %q want %q", got, want)
