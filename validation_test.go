@@ -63,3 +63,21 @@ func TestValidEmail(t *testing.T) {
 		t.Fatal("rejected email")
 	}
 }
+
+func TestInvalidLoginInputIsRejectedWithoutDatabaseAccess(t *testing.T) {
+	cfg := &apiConfig{}
+	for _, body := range []string{
+		`{"email":"invalid","password":"password"}`,
+		`{"email":"a@example.com","password":""}`,
+		`{"email":"a@example.com","password":"` + strings.Repeat("a", 1025) + `"}`,
+	} {
+		response := httptest.NewRecorder()
+		cfg.routes().ServeHTTP(response, httptest.NewRequest("POST", "/api/login", strings.NewReader(body)))
+		if response.Code != http.StatusUnauthorized {
+			t.Fatalf("got %d: %s", response.Code, response.Body)
+		}
+		if !strings.Contains(response.Body.String(), "Incorrect email or password") {
+			t.Fatal(response.Body.String())
+		}
+	}
+}

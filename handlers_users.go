@@ -54,6 +54,10 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &params) {
 		return
 	}
+	if !validEmail(params.Email) || params.Password == "" || len(params.Password) > 1024 {
+		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password")
+		return
+	}
 	user, err := cfg.dbQueries.GetUserByEmail(r.Context(), params.Email)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password")
