@@ -31,6 +31,11 @@ func TestDecodeJSON(t *testing.T) {
 	}
 }
 func TestQueryValidation(t *testing.T) {
+	for _, query := range []string{"?limit=%ZZ", "?offset=%", "?limit=1;offset=100"} {
+		if _, err := parseChirpQuery(httptest.NewRequest("GET", "/"+query, nil)); err == nil {
+			t.Fatalf("accepted malformed query %s", query)
+		}
+	}
 	for _, query := range []string{"?sort=wrong", "?limit=0", "?limit=101", "?offset=-1", "?author_id=wrong"} {
 		if _, err := parseChirpQuery(httptest.NewRequest("GET", "/"+query, nil)); err == nil {
 			t.Fatalf("accepted %s", query)

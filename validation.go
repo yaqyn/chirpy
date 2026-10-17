@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/mail"
+	"net/url"
 	"strconv"
 )
 
@@ -47,7 +48,10 @@ func validEmail(value string) bool {
 }
 func parseChirpQuery(r *http.Request) (database.GetChirpsPageParams, error) {
 	p := database.GetChirpsPageParams{PageLimit: 100}
-	query := r.URL.Query()
+	query, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		return p, errors.New("Invalid query encoding")
+	}
 	if value := query.Get("author_id"); value != "" {
 		id, err := uuid.Parse(value)
 		if err != nil {
