@@ -19,6 +19,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 	if !decodeJSON(w, r, &params) {
 		return
 	}
+	params.Email = normalizeEmail(params.Email)
 	if !validEmail(params.Email) || params.Password == "" || len(params.Password) > 1024 {
 		respondWithError(w, http.StatusBadRequest, "Valid email and password (1–1024 bytes) are required")
 		return
@@ -54,6 +55,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &params) {
 		return
 	}
+	params.Email = normalizeEmail(params.Email)
 	if !validEmail(params.Email) || params.Password == "" || len(params.Password) > 1024 {
 		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password")
 		return
@@ -144,6 +146,7 @@ func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request) 
 	if !decodeJSON(w, r, &params) {
 		return
 	}
+	params.Email = normalizeEmail(params.Email)
 	if !validEmail(params.Email) || params.Password == "" || len(params.Password) > 1024 {
 		respondWithError(w, http.StatusBadRequest, "Email and password are required")
 		return

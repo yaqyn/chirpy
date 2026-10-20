@@ -10,6 +10,7 @@ import (
 	"net/mail"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 func decodeJSON(w http.ResponseWriter, r *http.Request, payload any) bool {
@@ -46,6 +47,7 @@ func validEmail(value string) bool {
 	address, err := mail.ParseAddress(value)
 	return err == nil && address.Address == value && len(value) <= 254
 }
+func normalizeEmail(value string) string { return strings.ToLower(strings.TrimSpace(value)) }
 func parseChirpQuery(r *http.Request) (database.GetChirpsPageParams, error) {
 	p := database.GetChirpsPageParams{PageLimit: 100}
 	query, err := url.ParseQuery(r.URL.RawQuery)

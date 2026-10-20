@@ -68,6 +68,11 @@ func TestValidEmail(t *testing.T) {
 		t.Fatal("rejected email")
 	}
 }
+func TestNormalizeEmail(t *testing.T) {
+	if got := normalizeEmail("  Student@Example.COM\t"); got != "student@example.com" {
+		t.Fatalf("got %q", got)
+	}
+}
 
 func TestInvalidLoginInputIsRejectedWithoutDatabaseAccess(t *testing.T) {
 	cfg := &apiConfig{}
