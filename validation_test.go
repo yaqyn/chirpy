@@ -58,6 +58,13 @@ func TestCleanChirp(t *testing.T) {
 		}
 	}
 }
+
+func TestCreateChirpTrimsSurroundingWhitespaceBeforeSaving(t *testing.T) {
+	body := normalizeChirp("\n\t hello FORNAX \u00a0")
+	if body != "hello ****" {
+		t.Fatalf("unexpected normalization: %q", body)
+	}
+}
 func TestValidEmail(t *testing.T) {
 	for _, value := range []string{"", "invalid", "Name <a@example.com>"} {
 		if validEmail(value) {

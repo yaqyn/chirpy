@@ -35,12 +35,13 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusBadRequest, "Chirp body is required")
 		return
 	}
+	params.Body = normalizeChirp(params.Body)
 	if utf8.RuneCountInString(params.Body) > 140 {
 		respondWithError(w, http.StatusBadRequest, "Chirp is too long")
 		return
 	}
 	chirp, err := cfg.dbQueries.CreateChirp(r.Context(), database.CreateChirpParams{
-		Body: cleanChirp(params.Body), UserID: userID,
+		Body: params.Body, UserID: userID,
 	})
 	if err != nil {
 		var pgErr *pq.Error
@@ -123,6 +124,8 @@ func cleanChirp(body string) string {
 	writeWord(body[start:])
 	return cleaned.String()
 }
+
+func normalizeChirp(body string) string { return cleanChirp(strings.TrimSpace(body)) }
 
 func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GetBearerToken(r.Header)
