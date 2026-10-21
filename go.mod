@@ -1,6 +1,6 @@
 module github.com/yaqyn/threadline-social-api
 
-go 1.27.2
+go 1.27.3
 
 require (
 	github.com/alexedwards/argon2id v1.0.0
