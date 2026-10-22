@@ -45,6 +45,12 @@ func TestQueryValidation(t *testing.T) {
 	if err != nil || !p.Descending || p.PageLimit != 5 || p.PageOffset != 10 {
 		t.Fatalf("params=%+v err=%v", p, err)
 	}
+	for _, alias := range []string{"newest", "oldest"} {
+		p, err := parseChirpQuery(httptest.NewRequest("GET", "/?sort="+alias, nil))
+		if err != nil || p.Descending != (alias == "newest") {
+			t.Fatalf("sort alias %s: %+v %v", alias, p, err)
+		}
+	}
 }
 func TestCleanChirp(t *testing.T) {
 	for _, separator := range []string{"\t", "\n", "\r\n", "\u00a0", "\u2003"} {

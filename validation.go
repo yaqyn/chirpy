@@ -73,11 +73,11 @@ func parseChirpQuery(r *http.Request) (database.GetChirpsPageParams, error) {
 		p.AuthorID = uuid.NullUUID{UUID: id, Valid: true}
 	}
 	switch query.Get("sort") {
-	case "", "asc":
-	case "desc":
+	case "", "asc", "oldest":
+	case "desc", "newest":
 		p.Descending = true
 	default:
-		return p, errors.New("Sort must be asc or desc")
+		return p, errors.New("Sort must be asc, desc, oldest, or newest")
 	}
 	for _, item := range []struct {
 		name     string

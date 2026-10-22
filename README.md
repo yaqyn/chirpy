@@ -143,7 +143,7 @@ curl -sS -X POST http://localhost:8080/api/chirps \
 curl -sS 'http://localhost:8080/api/chirps?sort=desc&limit=20&offset=0'
 ```
 
-The feed accepts `author_id=<UUID>`, `sort=asc|desc`, `limit=1..100`, and
+The feed accepts `author_id=<UUID>`, `sort=asc|desc|oldest|newest`, `limit=1..100`, and
 `offset=0..2147483647`. Defaults are ascending order, 100 records, and offset 0.
 Filtering, sorting, and pagination happen in PostgreSQL. Equal timestamps use
 ID ascending as a stable tie-breaker. No results returns `[]`.
