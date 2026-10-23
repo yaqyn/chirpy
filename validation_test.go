@@ -14,6 +14,7 @@ func TestDecodeJSON(t *testing.T) {
 	}{
 		{"valid", `{"email":"a@example.com"}`, 200}, {"null", `null`, 400},
 		{"trailing", `{} {}`, 400}, {"malformed", `{`, 400}, {"wrong type", `[]`, 400},
+		{"unknown field", `{"email":"a@example.com","admin":true}`, 400},
 		{"oversized", `{"email":"` + strings.Repeat("a", maxBodyBytes) + `"}`, 413},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
@@ -25,7 +26,9 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, payload any) bool {
 		respondWithError(w, 400, "JSON object is required")
 		return false
 	}
-	if err := json.Unmarshal(raw, payload); err != nil {
+	payloadDecoder := json.NewDecoder(bytes.NewReader(raw))
+	payloadDecoder.DisallowUnknownFields()
+	if err := payloadDecoder.Decode(payload); err != nil {
 		jsonError(w, err)
 		return false
 	}
