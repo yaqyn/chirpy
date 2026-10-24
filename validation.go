@@ -57,13 +57,13 @@ func parseChirpQuery(r *http.Request) (database.GetChirpsPageParams, error) {
 	if err != nil {
 		return p, errors.New("Invalid query encoding")
 	}
-	allowed := map[string]bool{"author_id": true, "sort": true, "limit": true, "offset": true}
+	allowed := map[string]bool{"author_id": true, "sort": true, "limit": true, "offset": true, "page": true}
 	for name := range query {
 		if !allowed[name] {
 			return p, errors.New("Unknown query parameter: " + name)
 		}
 	}
-	for _, name := range []string{"author_id", "sort", "limit", "offset"} {
+	for _, name := range []string{"author_id", "sort", "limit", "offset", "page"} {
 		if len(query[name]) > 1 {
 			return p, errors.New("Duplicate " + name)
 		}
@@ -96,6 +96,17 @@ func parseChirpQuery(r *http.Request) (database.GetChirpsPageParams, error) {
 			}
 			*item.target = int32(n)
 		}
+	}
+	if value := query.Get("page"); value != "" {
+		if query.Get("offset") != "" {
+			return p, errors.New("Page and offset cannot be combined")
+		}
+		page, err := strconv.ParseInt(value, 10, 32)
+		offset := (page - 1) * int64(p.PageLimit)
+		if err != nil || page < 1 || offset > 2147483647 {
+			return p, errors.New("Invalid page")
+		}
+		p.PageOffset = int32(offset)
 	}
 	return p, nil
 }

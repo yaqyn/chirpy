@@ -426,7 +426,9 @@
               "type": "string",
               "enum": [
                 "asc",
-                "desc"
+                "desc",
+                "oldest",
+                "newest"
               ],
               "default": "asc"
             }
@@ -449,6 +451,14 @@
               "minimum": 0,
               "maximum": 2147483647,
               "default": 0
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
             }
           }
         ]

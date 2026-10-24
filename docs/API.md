@@ -88,14 +88,16 @@ Authorization is checked in Go and included in the SQL deletion predicate.
 GET /api/chirps
 GET /api/chirps?sort=desc
 GET /api/chirps?author_id=3311741c-680c-4546-99f3-fc9efac2036c&sort=asc&limit=20&offset=40
+GET /api/chirps?sort=newest&limit=20&page=3
 ```
 
 | Query | Valid values | Default |
 |---|---|---|
 | `author_id` | UUID | All authors |
-| `sort` | `asc`, `desc` | `asc` |
+| `sort` | `asc`, `desc`, `oldest`, `newest` | `asc` |
 | `limit` | Integer 1–100 | 100 |
 | `offset` | Integer 0–2147483647 | 0 |
+| `page` | Positive integer; cannot be combined with `offset` | Omitted |
 
 Returns `200` and an array; an empty result is `[]`. Invalid values return `400`.
 Empty query values behave as omitted parameters. Ordering is by `created_at`

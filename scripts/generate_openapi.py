@@ -29,9 +29,10 @@ operation("/api/chirps", "get", "List a page of chirps", 200, errors=(400,500))
 paths["/api/chirps"]["get"]["responses"]["200"] = response("Chirp array", {"type":"array", "items":ref("Chirp")})
 paths["/api/chirps"]["get"]["parameters"] = [{"name":name,"in":"query","schema":schema} for name,schema in [
     ("author_id",{"type":"string","format":"uuid"}),
-    ("sort",{"type":"string","enum":["asc","desc"],"default":"asc"}),
+    ("sort",{"type":"string","enum":["asc","desc","oldest","newest"],"default":"asc"}),
     ("limit",{"type":"integer","minimum":1,"maximum":100,"default":100}),
-    ("offset",{"type":"integer","minimum":0,"maximum":2147483647,"default":0})]]
+    ("offset",{"type":"integer","minimum":0,"maximum":2147483647,"default":0}),
+    ("page",{"type":"integer","minimum":1})]]
 operation("/api/chirps/{chirpID}","get","Read a chirp",200,"Chirp",errors=(400,404,500))
 operation("/api/chirps/{chirpID}","delete","Delete an owned chirp",204,security="AccessToken",errors=(400,401,403,404,500))
 operation("/api/polka/webhooks","post","Process a user.upgraded event; ignore other events",204,body="Webhook",security="PolkaKey",errors=(400,401,404,500))

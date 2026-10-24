@@ -32,12 +32,12 @@ func TestDecodeJSON(t *testing.T) {
 	}
 }
 func TestQueryValidation(t *testing.T) {
-	for _, query := range []string{"?limit=%ZZ", "?offset=%", "?limit=1;offset=100", "?limit=5&limit=10", "?sort=asc&sort=desc", "?limt=5"} {
+	for _, query := range []string{"?limit=%ZZ", "?offset=%", "?limit=1;offset=100", "?limit=5&limit=10", "?sort=asc&sort=desc", "?page=1&page=2", "?page=2&offset=1", "?limt=5"} {
 		if _, err := parseChirpQuery(httptest.NewRequest("GET", "/"+query, nil)); err == nil {
 			t.Fatalf("accepted malformed query %s", query)
 		}
 	}
-	for _, query := range []string{"?sort=wrong", "?limit=0", "?limit=101", "?offset=-1", "?author_id=wrong"} {
+	for _, query := range []string{"?sort=wrong", "?limit=0", "?limit=101", "?offset=-1", "?page=0", "?author_id=wrong"} {
 		if _, err := parseChirpQuery(httptest.NewRequest("GET", "/"+query, nil)); err == nil {
 			t.Fatalf("accepted %s", query)
 		}
@@ -45,6 +45,10 @@ func TestQueryValidation(t *testing.T) {
 	p, err := parseChirpQuery(httptest.NewRequest("GET", "/?sort=desc&limit=5&offset=10", nil))
 	if err != nil || !p.Descending || p.PageLimit != 5 || p.PageOffset != 10 {
 		t.Fatalf("params=%+v err=%v", p, err)
+	}
+	p, err = parseChirpQuery(httptest.NewRequest("GET", "/?limit=5&page=3", nil))
+	if err != nil || p.PageLimit != 5 || p.PageOffset != 10 {
+		t.Fatalf("page params=%+v err=%v", p, err)
 	}
 	for _, alias := range []string{"newest", "oldest"} {
 		p, err := parseChirpQuery(httptest.NewRequest("GET", "/?sort="+alias, nil))
