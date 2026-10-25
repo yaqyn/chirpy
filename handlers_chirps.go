@@ -9,6 +9,7 @@ import (
 	"github.com/yaqyn/threadline-social-api/internal/database"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -78,6 +79,9 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 			Body: row.Body, UserID: row.UserID,
 		})
 	}
+	w.Header().Set("X-Page-Limit", strconv.Itoa(int(params.PageLimit)))
+	w.Header().Set("X-Page-Offset", strconv.Itoa(int(params.PageOffset)))
+	w.Header().Set("X-Result-Count", strconv.Itoa(len(chirps)))
 	respondWithJSON(w, http.StatusOK, chirps)
 }
 
