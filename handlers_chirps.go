@@ -66,11 +66,17 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	requestedLimit := params.PageLimit
+	params.PageLimit++
 	rows, err := cfg.dbQueries.GetChirpsPage(r.Context(), params)
 	if err != nil {
 		log.Printf("Failed to get chirps: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "Failed to get chirps")
 		return
+	}
+	hasMore := len(rows) > int(requestedLimit)
+	if hasMore {
+		rows = rows[:requestedLimit]
 	}
 	chirps := make([]Chirp, 0, len(rows))
 	for _, row := range rows {
@@ -79,9 +85,10 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 			Body: row.Body, UserID: row.UserID,
 		})
 	}
-	w.Header().Set("X-Page-Limit", strconv.Itoa(int(params.PageLimit)))
+	w.Header().Set("X-Page-Limit", strconv.Itoa(int(requestedLimit)))
 	w.Header().Set("X-Page-Offset", strconv.Itoa(int(params.PageOffset)))
 	w.Header().Set("X-Result-Count", strconv.Itoa(len(chirps)))
+	w.Header().Set("X-Has-More", strconv.FormatBool(hasMore))
 	respondWithJSON(w, http.StatusOK, chirps)
 }
 

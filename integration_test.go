@@ -86,12 +86,13 @@ func TestAPIIntegration(t *testing.T) {
 	request("GET", path, nil, "", 200)
 	second := request("POST", "/api/chirps", map[string]string{"body": "second post"}, access, 201)
 	for _, test := range []struct {
-		query  string
-		wantID string
+		query   string
+		wantID  string
+		hasMore string
 	}{
-		{"?author_id=" + id + "&sort=asc&limit=1", chirp["id"].(string)},
-		{"?author_id=" + id + "&sort=desc&limit=1", second["id"].(string)},
-		{"?author_id=" + id + "&sort=asc&limit=1&offset=1", second["id"].(string)},
+		{"?author_id=" + id + "&sort=asc&limit=1", chirp["id"].(string), "true"},
+		{"?author_id=" + id + "&sort=desc&limit=1", second["id"].(string), "true"},
+		{"?author_id=" + id + "&sort=asc&limit=1&offset=1", second["id"].(string), "false"},
 	} {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, httptest.NewRequest("GET", "/api/chirps"+test.query, nil))
@@ -101,6 +102,9 @@ func TestAPIIntegration(t *testing.T) {
 		}
 		if w.Code != 200 || len(items) != 1 || items[0].ID.String() != test.wantID {
 			t.Fatalf("query %s: %d %s", test.query, w.Code, w.Body.String())
+		}
+		if w.Header().Get("X-Has-More") != test.hasMore {
+			t.Fatalf("query %s has X-Has-More=%q, want %q", test.query, w.Header().Get("X-Has-More"), test.hasMore)
 		}
 	}
 
