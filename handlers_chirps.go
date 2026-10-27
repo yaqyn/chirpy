@@ -36,6 +36,10 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusBadRequest, "Chirp body is required")
 		return
 	}
+	if hasUnsafeControls(params.Body) {
+		respondWithError(w, http.StatusBadRequest, "Chirp contains unsupported control characters")
+		return
+	}
 	params.Body = normalizeChirp(params.Body)
 	if utf8.RuneCountInString(params.Body) > 140 {
 		respondWithError(w, http.StatusBadRequest, "Chirp is too long")

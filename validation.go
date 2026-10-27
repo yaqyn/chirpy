@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 func decodeJSON(w http.ResponseWriter, r *http.Request, payload any) bool {
@@ -57,6 +58,14 @@ func validEmail(value string) bool {
 	return err == nil && address.Address == value && len(value) <= 254
 }
 func normalizeEmail(value string) string { return strings.ToLower(strings.TrimSpace(value)) }
+func hasUnsafeControls(value string) bool {
+	for _, char := range value {
+		if unicode.IsControl(char) && char != '\n' && char != '\r' && char != '\t' {
+			return true
+		}
+	}
+	return false
+}
 func parseChirpQuery(r *http.Request) (database.GetChirpsPageParams, error) {
 	p := database.GetChirpsPageParams{PageLimit: 100}
 	query, err := url.ParseQuery(r.URL.RawQuery)

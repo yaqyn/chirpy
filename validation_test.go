@@ -83,6 +83,16 @@ func TestCreateChirpTrimsSurroundingWhitespaceBeforeSaving(t *testing.T) {
 		t.Fatalf("unexpected normalization: %q", body)
 	}
 }
+func TestChirpControlValidationKeepsFormattingWhitespace(t *testing.T) {
+	for _, value := range []string{"before\x00after", "before\x1bafter", "before\u007fafter"} {
+		if !hasUnsafeControls(value) {
+			t.Fatalf("accepted control in %q", value)
+		}
+	}
+	if hasUnsafeControls("one\ntwo\tindented\r\n") {
+		t.Fatal("rejected formatting whitespace")
+	}
+}
 func TestValidEmail(t *testing.T) {
 	for _, value := range []string{"", "invalid", "Name <a@example.com>"} {
 		if validEmail(value) {
