@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/yaqyn/threadline-social-api/internal/database"
 	"io"
+	"mime"
 	"net/http"
 	"net/mail"
 	"net/url"
@@ -15,6 +16,11 @@ import (
 )
 
 func decodeJSON(w http.ResponseWriter, r *http.Request, payload any) bool {
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		respondWithError(w, http.StatusUnsupportedMediaType, "Content-Type must be application/json")
+		return false
+	}
 	decoder := json.NewDecoder(r.Body)
 	// Decode the document first so null is never mistaken for an empty object.
 	var raw json.RawMessage
