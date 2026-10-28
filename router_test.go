@@ -25,6 +25,9 @@ func TestPublicDirectoryIsolation(t *testing.T) {
 	if response.Header().Get("X-Content-Type-Options") != "nosniff" {
 		t.Fatal("missing security header")
 	}
+	if response.Header().Get("Permissions-Policy") == "" || response.Header().Get("Cross-Origin-Resource-Policy") != "same-origin" {
+		t.Fatal("missing browser isolation headers")
+	}
 }
 
 func TestAuthenticationGuards(t *testing.T) {
