@@ -19,7 +19,7 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 		code = http.StatusInternalServerError
 		data = []byte(`{"error":"Something went wrong"}`)
 	}
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
 	w.Write(data)
 }

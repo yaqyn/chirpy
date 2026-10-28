@@ -50,3 +50,11 @@ func TestAuthenticationGuards(t *testing.T) {
 		t.Fatalf("reset outside dev: %d", response.Code)
 	}
 }
+
+func TestJSONResponsesDeclareUTF8(t *testing.T) {
+	response := httptest.NewRecorder()
+	respondWithJSON(response, http.StatusOK, map[string]string{"message": "hello"})
+	if response.Header().Get("Content-Type") != "application/json; charset=utf-8" {
+		t.Fatalf("content type: %q", response.Header().Get("Content-Type"))
+	}
+}
