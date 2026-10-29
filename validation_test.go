@@ -33,7 +33,9 @@ func TestDecodeJSON(t *testing.T) {
 	}
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("POST", "/", strings.NewReader(`{"email":"a@example.com"}`))
-	var payload struct{ Email string `json:"email"` }
+	var payload struct {
+		Email string `json:"email"`
+	}
 	if decodeJSON(w, r, &payload) || w.Code != http.StatusUnsupportedMediaType {
 		t.Fatalf("accepted missing content type: %d", w.Code)
 	}
