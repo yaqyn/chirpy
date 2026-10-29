@@ -20,6 +20,7 @@ func TestDecodeJSON(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest("POST", "/", strings.NewReader(tc.body))
+			r.Header.Set("Content-Type", "application/json")
 			r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 			var payload struct {
 				Email string `json:"email"`
@@ -29,6 +30,12 @@ func TestDecodeJSON(t *testing.T) {
 				t.Fatalf("valid=%v status=%d", got, w.Code)
 			}
 		})
+	}
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("POST", "/", strings.NewReader(`{"email":"a@example.com"}`))
+	var payload struct{ Email string `json:"email"` }
+	if decodeJSON(w, r, &payload) || w.Code != http.StatusUnsupportedMediaType {
+		t.Fatalf("accepted missing content type: %d", w.Code)
 	}
 }
 func TestQueryValidation(t *testing.T) {
