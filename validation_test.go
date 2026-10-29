@@ -117,7 +117,9 @@ func TestInvalidLoginInputIsRejectedWithoutDatabaseAccess(t *testing.T) {
 		`{"email":"a@example.com","password":"` + strings.Repeat("a", 1025) + `"}`,
 	} {
 		response := httptest.NewRecorder()
-		cfg.routes().ServeHTTP(response, httptest.NewRequest("POST", "/api/login", strings.NewReader(body)))
+		request := httptest.NewRequest("POST", "/api/login", strings.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		cfg.routes().ServeHTTP(response, request)
 		if response.Code != http.StatusUnauthorized {
 			t.Fatalf("got %d: %s", response.Code, response.Body)
 		}

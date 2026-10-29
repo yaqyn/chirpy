@@ -38,6 +38,9 @@ func TestAPIIntegration(t *testing.T) {
 			}
 		}
 		r := httptest.NewRequest(method, path, &body)
+		if payload != nil {
+			r.Header.Set("Content-Type", "application/json")
+		}
 		if authorization != "" {
 			r.Header.Set("Authorization", authorization)
 		}
