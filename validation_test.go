@@ -85,6 +85,12 @@ func TestCreateChirpTrimsSurroundingWhitespaceBeforeSaving(t *testing.T) {
 		t.Fatalf("unexpected normalization: %q", body)
 	}
 }
+
+func TestCreateChirpNormalizesLineEndings(t *testing.T) {
+	if got := normalizeChirp("first\r\nsecond\rthird"); got != "first\nsecond\nthird" {
+		t.Fatalf("unexpected line endings: %q", got)
+	}
+}
 func TestChirpControlValidationKeepsFormattingWhitespace(t *testing.T) {
 	for _, value := range []string{"before\x00after", "before\x1bafter", "before\u007fafter"} {
 		if !hasUnsafeControls(value) {

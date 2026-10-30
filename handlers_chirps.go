@@ -140,7 +140,11 @@ func cleanChirp(body string) string {
 	return cleaned.String()
 }
 
-func normalizeChirp(body string) string { return cleanChirp(strings.TrimSpace(body)) }
+func normalizeChirp(body string) string {
+	body = strings.ReplaceAll(body, "\r\n", "\n")
+	body = strings.ReplaceAll(body, "\r", "\n")
+	return cleanChirp(strings.TrimSpace(body))
+}
 
 func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GetBearerToken(r.Header)
