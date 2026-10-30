@@ -12,8 +12,11 @@ func TestDecodeJSON(t *testing.T) {
 		name, body string
 		want       int
 	}{
-		{"valid", `{"email":"a@example.com"}`, 200}, {"null", `null`, 400},
-		{"trailing", `{} {}`, 400}, {"malformed", `{`, 400}, {"wrong type", `[]`, 400},
+		{"valid", `{"email":"a@example.com"}`, 200},
+		{"null", `null`, 400},
+		{"trailing", `{} {}`, 400},
+		{"malformed", `{`, 400},
+		{"wrong type", `[]`, 400},
 		{"unknown field", `{"email":"a@example.com","admin":true}`, 400},
 		{"oversized", `{"email":"` + strings.Repeat("a", maxBodyBytes) + `"}`, 413},
 	} {
@@ -40,6 +43,7 @@ func TestDecodeJSON(t *testing.T) {
 		t.Fatalf("accepted missing content type: %d", w.Code)
 	}
 }
+
 func TestQueryValidation(t *testing.T) {
 	for _, query := range []string{"?limit=%ZZ", "?offset=%", "?limit=1;offset=100", "?limit=5&limit=10", "?sort=asc&sort=desc", "?page=1&page=2", "?page=2&offset=1", "?limt=5"} {
 		if _, err := parseChirpQuery(httptest.NewRequest("GET", "/"+query, nil)); err == nil {
@@ -66,6 +70,7 @@ func TestQueryValidation(t *testing.T) {
 		}
 	}
 }
+
 func TestCleanChirp(t *testing.T) {
 	for _, separator := range []string{"\t", "\n", "\r\n", "\u00a0", "\u2003"} {
 		if got := cleanChirp("hello" + separator + "FORNAX" + separator); got != "hello"+separator+"****"+separator {
@@ -91,6 +96,7 @@ func TestCreateChirpNormalizesLineEndings(t *testing.T) {
 		t.Fatalf("unexpected line endings: %q", got)
 	}
 }
+
 func TestChirpControlValidationKeepsFormattingWhitespace(t *testing.T) {
 	for _, value := range []string{"before\x00after", "before\x1bafter", "before\u007fafter"} {
 		if !hasUnsafeControls(value) {
@@ -101,6 +107,7 @@ func TestChirpControlValidationKeepsFormattingWhitespace(t *testing.T) {
 		t.Fatal("rejected formatting whitespace")
 	}
 }
+
 func TestValidEmail(t *testing.T) {
 	for _, value := range []string{"", "invalid", "Name <a@example.com>"} {
 		if validEmail(value) {
@@ -111,6 +118,7 @@ func TestValidEmail(t *testing.T) {
 		t.Fatal("rejected email")
 	}
 }
+
 func TestNormalizeEmail(t *testing.T) {
 	if got := normalizeEmail("  Student@Example.COM\t"); got != "student@example.com" {
 		t.Fatalf("got %q", got)

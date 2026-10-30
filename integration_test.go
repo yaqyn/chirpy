@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
-	"github.com/yaqyn/threadline-social-api/internal/auth"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/yaqyn/threadline-social-api/internal/auth"
 
 	"github.com/google/uuid"
 	"github.com/yaqyn/threadline-social-api/internal/database"

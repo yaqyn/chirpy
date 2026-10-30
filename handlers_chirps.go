@@ -3,16 +3,17 @@ package main
 import (
 	"database/sql"
 	"errors"
-	"github.com/google/uuid"
-	"github.com/lib/pq"
-	"github.com/yaqyn/threadline-social-api/internal/auth"
-	"github.com/yaqyn/threadline-social-api/internal/database"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/google/uuid"
+	"github.com/lib/pq"
+	"github.com/yaqyn/threadline-social-api/internal/auth"
+	"github.com/yaqyn/threadline-social-api/internal/database"
 )
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
