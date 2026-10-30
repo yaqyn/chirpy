@@ -93,6 +93,13 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Page-Offset", strconv.Itoa(int(params.PageOffset)))
 	w.Header().Set("X-Result-Count", strconv.Itoa(len(chirps)))
 	w.Header().Set("X-Has-More", strconv.FormatBool(hasMore))
+	if hasMore {
+		w.Header().Set("X-Next-Offset", strconv.Itoa(int(params.PageOffset+requestedLimit)))
+	}
+	if params.PageOffset > 0 {
+		previous := max(int32(0), params.PageOffset-requestedLimit)
+		w.Header().Set("X-Previous-Offset", strconv.Itoa(int(previous)))
+	}
 	respondWithJSON(w, http.StatusOK, chirps)
 }
 

@@ -109,6 +109,12 @@ func TestAPIIntegration(t *testing.T) {
 		if w.Header().Get("X-Has-More") != test.hasMore {
 			t.Fatalf("query %s has X-Has-More=%q, want %q", test.query, w.Header().Get("X-Has-More"), test.hasMore)
 		}
+		if test.hasMore == "true" && w.Header().Get("X-Next-Offset") != "1" {
+			t.Fatalf("query %s next offset=%q", test.query, w.Header().Get("X-Next-Offset"))
+		}
+		if strings.Contains(test.query, "offset=1") && w.Header().Get("X-Previous-Offset") != "0" {
+			t.Fatalf("query %s previous offset=%q", test.query, w.Header().Get("X-Previous-Offset"))
+		}
 	}
 
 	request("POST", "/api/chirps", map[string]string{"body": strings.Repeat("界", 141)}, access, 400)
