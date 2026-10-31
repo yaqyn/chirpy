@@ -151,7 +151,11 @@ func cleanChirp(body string) string {
 func normalizeChirp(body string) string {
 	body = strings.ReplaceAll(body, "\r\n", "\n")
 	body = strings.ReplaceAll(body, "\r", "\n")
-	return cleanChirp(strings.TrimSpace(body))
+	lines := strings.Split(strings.TrimSpace(body), "\n")
+	for index := range lines {
+		lines[index] = strings.TrimRight(lines[index], " \t")
+	}
+	return cleanChirp(strings.Join(lines, "\n"))
 }
 
 func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request) {

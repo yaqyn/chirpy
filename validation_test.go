@@ -97,6 +97,12 @@ func TestCreateChirpNormalizesLineEndings(t *testing.T) {
 	}
 }
 
+func TestCreateChirpRemovesTrailingLineWhitespace(t *testing.T) {
+	if got := normalizeChirp("first  \nsecond\t\n third "); got != "first\nsecond\n third" {
+		t.Fatalf("unexpected trailing whitespace: %q", got)
+	}
+}
+
 func TestChirpControlValidationKeepsFormattingWhitespace(t *testing.T) {
 	for _, value := range []string{"before\x00after", "before\x1bafter", "before\u007fafter"} {
 		if !hasUnsafeControls(value) {
