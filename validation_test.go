@@ -71,6 +71,14 @@ func TestQueryValidation(t *testing.T) {
 	}
 }
 
+func TestPaginationLinksPreserveFiltersAndUseOffsets(t *testing.T) {
+	r := httptest.NewRequest("GET", "/api/chirps?author_id=00000000-0000-0000-0000-000000000001&limit=5&page=3", nil)
+	got := paginationLink(r, 15, "next")
+	if strings.Contains(got, "page=") || !strings.Contains(got, "offset=15") || !strings.Contains(got, "author_id=") || !strings.Contains(got, `rel="next"`) {
+		t.Fatal(got)
+	}
+}
+
 func TestCleanChirp(t *testing.T) {
 	for _, separator := range []string{"\t", "\n", "\r\n", "\u00a0", "\u2003"} {
 		if got := cleanChirp("hello" + separator + "FORNAX" + separator); got != "hello"+separator+"****"+separator {
