@@ -4,7 +4,24 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
+
+	"github.com/google/uuid"
 )
+
+func TestChirpDetailSupportsConditionalRequests(t *testing.T) {
+	chirp := Chirp{ID: uuid.MustParse("00000000-0000-0000-0000-000000000001"), UpdatedAt: time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC), Body: "hello"}
+	first := httptest.NewRecorder()
+	respondWithChirp(first, httptest.NewRequest("GET", "/api/chirps/1", nil), chirp)
+	etag := first.Header().Get("ETag")
+	request := httptest.NewRequest("GET", "/api/chirps/1", nil)
+	request.Header.Set("If-None-Match", etag)
+	conditional := httptest.NewRecorder()
+	respondWithChirp(conditional, request, chirp)
+	if etag == "" || conditional.Code != http.StatusNotModified || conditional.Body.Len() != 0 {
+		t.Fatalf("etag=%q status=%d body=%q", etag, conditional.Code, conditional.Body.String())
+	}
+}
 
 func TestPublicDirectoryIsolation(t *testing.T) {
 	cfg := &apiConfig{}
@@ -33,8 +50,12 @@ func TestPublicDirectoryIsolation(t *testing.T) {
 func TestAuthenticationGuards(t *testing.T) {
 	cfg := &apiConfig{jwtSecret: "test-secret", polkaKey: "test-key"}
 	for _, endpoint := range []struct{ method, path string }{
-		{"POST", "/api/chirps"}, {"DELETE", "/api/chirps/" + "00000000-0000-0000-0000-000000000001"},
-		{"PUT", "/api/users"}, {"POST", "/api/refresh"}, {"POST", "/api/revoke"}, {"POST", "/api/polka/webhooks"},
+		{"POST", "/api/chirps"},
+		{"DELETE", "/api/chirps/" + "00000000-0000-0000-0000-000000000001"},
+		{"PUT", "/api/users"},
+		{"POST", "/api/refresh"},
+		{"POST", "/api/revoke"},
+		{"POST", "/api/polka/webhooks"},
 	} {
 		t.Run(endpoint.method+endpoint.path, func(t *testing.T) {
 			response := httptest.NewRecorder()

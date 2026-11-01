@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
@@ -137,10 +138,20 @@ func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Failed to get chirp")
 		return
 	}
-	respondWithJSON(w, http.StatusOK, Chirp{
+	respondWithChirp(w, r, Chirp{
 		ID: chirp.ID, CreatedAt: chirp.CreatedAt, UpdatedAt: chirp.UpdatedAt,
 		Body: chirp.Body, UserID: chirp.UserID,
 	})
+}
+
+func respondWithChirp(w http.ResponseWriter, r *http.Request, chirp Chirp) {
+	etag := strconv.Quote(chirp.ID.String() + "-" + chirp.UpdatedAt.UTC().Format(time.RFC3339Nano))
+	w.Header().Set("ETag", etag)
+	if r.Header.Get("If-None-Match") == etag {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+	respondWithJSON(w, http.StatusOK, chirp)
 }
 
 func cleanChirp(body string) string {
