@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"mime"
 	"net/http"
 	"strconv"
 	"strings"
@@ -150,6 +151,19 @@ func respondWithChirp(w http.ResponseWriter, r *http.Request, chirp Chirp) {
 	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
+	}
+	for _, accepted := range strings.Split(r.Header.Get("Accept"), ",") {
+		mediaType, parameters, err := mime.ParseMediaType(strings.TrimSpace(accepted))
+		quality, qualityErr := strconv.ParseFloat(parameters["q"], 64)
+		if parameters["q"] == "" {
+			quality, qualityErr = 1, nil
+		}
+		if err == nil && qualityErr == nil && quality > 0 && strings.EqualFold(mediaType, "text/plain") {
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(chirp.Body))
+			return
+		}
 	}
 	respondWithJSON(w, http.StatusOK, chirp)
 }

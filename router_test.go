@@ -23,6 +23,24 @@ func TestChirpDetailSupportsConditionalRequests(t *testing.T) {
 	}
 }
 
+func TestChirpDetailCanBeRenderedAsPlainText(t *testing.T) {
+	chirp := Chirp{ID: uuid.MustParse("00000000-0000-0000-0000-000000000001"), UpdatedAt: time.Now(), Body: "hello\nworld"}
+	request := httptest.NewRequest("GET", "/api/chirps/1", nil)
+	request.Header.Set("Accept", "application/json, text/plain; q=0.8")
+	response := httptest.NewRecorder()
+	respondWithChirp(response, request, chirp)
+	if response.Code != http.StatusOK || response.Header().Get("Content-Type") != "text/plain; charset=utf-8" || response.Body.String() != chirp.Body {
+		t.Fatalf("status=%d type=%q body=%q", response.Code, response.Header().Get("Content-Type"), response.Body.String())
+	}
+	request = httptest.NewRequest("GET", "/api/chirps/1", nil)
+	request.Header.Set("Accept", "text/plain; q=0")
+	response = httptest.NewRecorder()
+	respondWithChirp(response, request, chirp)
+	if response.Header().Get("Content-Type") != "application/json; charset=utf-8" {
+		t.Fatalf("zero-quality plain text should fall back to JSON: %v", response.Header())
+	}
+}
+
 func TestPublicDirectoryIsolation(t *testing.T) {
 	cfg := &apiConfig{}
 	for _, path := range []string{"/app/.env", "/app/main.go", "/app/go.mod", "/app/../.env"} {
